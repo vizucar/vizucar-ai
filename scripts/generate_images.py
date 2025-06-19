@@ -29,7 +29,10 @@ def extract_model_year(filename):
 
 def generate_prompts(make, car_class, filename):
     model, year = extract_model_year(filename)
-    prompt_precise = f"{make} {model} {car_class}".strip()
+    if year:
+        prompt_precise = f"{make} {model} {year} {car_class}".strip()
+    else:
+        prompt_precise = f"{make} {model} {car_class}".strip()
     prompt_general = f"{car_class}".strip()
     return model, year, {
         "prompt_precise": prompt_precise,
