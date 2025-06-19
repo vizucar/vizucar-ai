@@ -1,0 +1,5 @@
+data/downloaded/
+data/processed/
+logs/
+__pycache__/
+*.pyc
