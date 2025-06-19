@@ -1,5 +1,6 @@
 data/downloaded/
 data/processed/
+data/prompts
 logs/
 __pycache__/
 *.pyc
