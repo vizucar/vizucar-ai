@@ -11,8 +11,8 @@ from diffusers import StableDiffusionPipeline, DDPMScheduler
 from transformers import CLIPTextModel, CLIPTokenizer
 
 # === CONFIGURATION ===
-DATA_DIR = "data/processed"
-PROMPT_FILE = "data/prompts/prompts.json"
+DATA_DIR = os.getenv("DATA_DIR", "data/processed")
+PROMPT_FILE = os.getenv("PROMPT_FILE", "data/prompts/prompts.json")
 OUTPUT_DIR = "models/custom_unet"
 GENERATED_DIR = "models/outputs"
 PRETRAINED_MODEL = "openai/clip-vit-base-patch32"
