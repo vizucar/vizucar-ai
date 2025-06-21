@@ -42,7 +42,7 @@ text_encoder.requires_grad_(False)
 
 # === IMAGE TRANSFORMS ===
 transform = transforms.Compose([
-    transforms.Resize((512, 512)),
+    transforms.Resize((256, 256)),
     transforms.ToTensor(),
     transforms.Normalize([0.5], [0.5])
 ])
