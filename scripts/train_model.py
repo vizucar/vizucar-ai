@@ -7,7 +7,7 @@ from torchvision import transforms
 from PIL import Image
 from tqdm import tqdm
 from accelerate import Accelerator
-from diffusers import StableDiffusionPipeline, DDPMScheduler
+from diffusers import StableDiffusionPipeline, DDIMScheduler
 from transformers import CLIPTextModel, CLIPTokenizer
 
 # === CONFIGURATION ===
@@ -32,7 +32,7 @@ tokenizer = CLIPTokenizer.from_pretrained(PIPELINE_MODEL, subfolder="tokenizer")
 text_encoder = CLIPTextModel.from_pretrained(PIPELINE_MODEL, subfolder="text_encoder").to(DEVICE)
 
 # === LOAD PRETRAINED PIPELINE ===
-pipe = StableDiffusionPipeline.from_pretrained(PIPELINE_MODEL, torch_dtype=torch.float32).to(DEVICE)
+pipe = StableDiffusionPipeline.from_pretrained(PIPELINE_MODEL, torch_dtype=torch.float16, safety_checker=None).to(DEVICE)
 unet = pipe.unet
 vae = pipe.vae
 
@@ -74,12 +74,12 @@ dataset = CarDataset(DATA_DIR, PROMPT_FILE, transform)
 dataloader = torch.utils.data.DataLoader(dataset, batch_size=BATCH_SIZE, shuffle=True)
 
 # === SCHEDULER ===
-noise_scheduler = DDPMScheduler(num_train_timesteps=1000)
+noise_scheduler = DDIMScheduler.from_pretrained(PIPELINE_MODEL, subfolder="scheduler")
 
 # === ACCELERATOR ===
 accelerator = Accelerator()
 optimizer = torch.optim.AdamW(unet.parameters(), lr=LEARNING_RATE)
-unet, optimizer, dataloader = accelerator.prepare(unet, optimizer, dataloader)
+unet, optimizer, dataloader = accelerator.prepare(unet.to(dtype=torch.float16), optimizer, dataloader)
 
 # === CHARGER CHECKPOINT SI EXISTE ===
 def load_checkpoint(unet, optimizer, output_dir):
@@ -96,6 +96,7 @@ def load_checkpoint(unet, optimizer, output_dir):
     return unet, optimizer, start_epoch
 
 unet, optimizer, start_epoch = load_checkpoint(unet, optimizer, OUTPUT_DIR)
+noise_scheduler.set_timesteps(1000)
 
 # === TRAINING LOOP ===
 for epoch in range(start_epoch, EPOCHS):
@@ -113,6 +114,7 @@ for epoch in range(start_epoch, EPOCHS):
         # Encode images to latent space
         with torch.no_grad():
             latents = vae.encode(images * 2 - 1).latent_dist.sample() * 0.18215
+            latents = latents.detach()
 
         # Sample noise
         noise = torch.randn_like(latents)
@@ -161,3 +163,5 @@ for epoch in range(start_epoch, EPOCHS):
         image_path = os.path.join(gen_dir, "test_prompt.jpg")
         image.save(image_path)
         print(f"🖼️ Generated test image: {image_path}")
+
+        torch.cuda.empty_cache()
