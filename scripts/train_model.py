@@ -22,6 +22,7 @@ BATCH_SIZE = 1
 LEARNING_RATE = 1e-5
 SAVE_EVERY = 5
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+torch_dtype = torch.float16 if DEVICE == "cuda" else torch.float32
 
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 os.makedirs(GENERATED_DIR, exist_ok=True)
@@ -32,7 +33,11 @@ tokenizer = CLIPTokenizer.from_pretrained(PIPELINE_MODEL, subfolder="tokenizer")
 text_encoder = CLIPTextModel.from_pretrained(PIPELINE_MODEL, subfolder="text_encoder").to(DEVICE)
 
 # === LOAD PRETRAINED PIPELINE ===
-pipe = StableDiffusionPipeline.from_pretrained(PIPELINE_MODEL, torch_dtype=torch.float16, safety_checker=None).to(DEVICE)
+pipe = StableDiffusionPipeline.from_pretrained(
+    PIPELINE_MODEL,
+    torch_dtype=torch_dtype,
+    safety_checker=None
+).to(DEVICE)
 unet = pipe.unet
 vae = pipe.vae
 
@@ -105,9 +110,11 @@ for epoch in range(start_epoch, EPOCHS):
 
     for batch in tqdm(dataloader, desc=f"Epoch {epoch+1}/{EPOCHS}"):
         images = batch["pixel_values"].to(DEVICE)
-        prompts = batch["prompt"]
+        if torch_dtype == torch.float16:
+            images = images.half()
 
         # Tokenize prompts
+        prompts = batch["prompt"]
         input_ids = tokenizer(prompts, padding="max_length", truncation=True, return_tensors="pt").input_ids.to(DEVICE)
         prompt_embeds = text_encoder(input_ids)[0]
 
