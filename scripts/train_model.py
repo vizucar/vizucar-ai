@@ -116,7 +116,7 @@ for epoch in range(start_epoch, EPOCHS):
         # Tokenize prompts
         prompts = batch["prompt"]
         input_ids = tokenizer(prompts, padding="max_length", truncation=True, return_tensors="pt").input_ids.to(DEVICE)
-        prompt_embeds = text_encoder(input_ids)[0]
+        prompt_embeds = text_encoder(input_ids)[0].to(dtype=torch_dtype)
 
         # Encode images to latent space
         with torch.no_grad():
@@ -160,7 +160,7 @@ for epoch in range(start_epoch, EPOCHS):
         test_prompt = "a red sports car on a racetrack"
         prompt_ids = tokenizer(test_prompt, return_tensors="pt").input_ids.to(DEVICE)
         with torch.no_grad():
-            prompt_embeds = text_encoder(prompt_ids)[0]
+            prompt_embeds = text_encoder(prompt_ids)[0].to(dtype=torch_dtype)
 
         pipe.unet = unwrapped
         image = pipe(prompt=test_prompt, num_inference_steps=30, guidance_scale=7.5).images[0]
